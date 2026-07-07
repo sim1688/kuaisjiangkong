@@ -1,0 +1,1030 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>快手自动投放中台</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7f9;
+      --surface: #ffffff;
+      --line: #d8dde6;
+      --text: #172033;
+      --muted: #667085;
+      --brand: #0f766e;
+      --brand-dark: #115e59;
+      --danger: #b42318;
+      --warning: #b54708;
+      --ok: #027a48;
+      --shadow: 0 1px 2px rgba(16, 24, 40, .06);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Microsoft YaHei", "Segoe UI", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      min-height: 64px;
+      padding: 0 24px;
+      border-bottom: 1px solid var(--line);
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+    h1 { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: 0; }
+    h2 { margin: 0 0 14px; font-size: 16px; }
+    h3 { margin: 0 0 10px; font-size: 14px; }
+    main { padding: 20px 24px 32px; }
+    .top-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 28px;
+      padding: 0 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #fff;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .pill strong { color: var(--text); }
+    .pill.token-ok strong { color: var(--ok); }
+    .pill.token-bad strong { color: var(--danger); }
+    .pill.token-unknown strong { color: var(--warning); }
+    nav {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--line);
+    }
+    .tab {
+      appearance: none;
+      border: 0;
+      border-bottom: 2px solid transparent;
+      background: transparent;
+      padding: 10px 12px;
+      color: var(--muted);
+      cursor: pointer;
+      font: inherit;
+    }
+    .tab.active { color: var(--brand-dark); border-bottom-color: var(--brand); font-weight: 700; }
+    .section { display: none; }
+    .section.active { display: block; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(120px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .metric, .panel {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+    .metric { padding: 14px; min-height: 76px; }
+    .metric .label { color: var(--muted); margin-bottom: 8px; }
+    .metric .value { font-size: 24px; font-weight: 800; }
+    .panel { padding: 16px; margin-bottom: 16px; }
+    .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(160px, 1fr));
+      gap: 12px;
+      align-items: end;
+    }
+    label { display: grid; gap: 6px; color: var(--muted); }
+    input, select {
+      width: 100%;
+      min-height: 36px;
+      padding: 7px 9px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--text);
+      font: inherit;
+    }
+    input[type="checkbox"] { width: 18px; min-height: 18px; }
+    button {
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--text);
+      padding: 0 12px;
+      cursor: pointer;
+      font: inherit;
+      white-space: nowrap;
+    }
+    button.primary { background: var(--brand); border-color: var(--brand); color: #fff; }
+    button.primary:hover { background: var(--brand-dark); }
+    button.danger { color: var(--danger); border-color: #fecdca; }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    .table-wrap { overflow: auto; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+    table { width: 100%; border-collapse: collapse; min-width: 900px; }
+    th, td { padding: 10px 12px; border-bottom: 1px solid #eaecf0; text-align: left; vertical-align: top; }
+    th { background: #f9fafb; color: #475467; font-weight: 700; position: sticky; top: 0; }
+    tr:last-child td { border-bottom: 0; }
+    .status {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 0 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      background: #f2f4f7;
+      color: #344054;
+    }
+    .status.success { background: #ecfdf3; color: var(--ok); }
+    .status.failed { background: #fef3f2; color: var(--danger); }
+    .status.dry_run { background: #fffaeb; color: var(--warning); }
+    .status.skipped { background: #f2f4f7; color: #475467; }
+    .delivery-status { display: grid; gap: 4px; min-width: 72px; }
+    .delivery-status .main { font-weight: 700; }
+    .delivery-status .main.on { color: var(--ok); }
+    .delivery-status .main.off { color: var(--danger); }
+    .money-low { color: var(--danger); font-weight: 700; }
+    .roi-low { color: var(--danger); font-weight: 700; }
+    .snapshot {
+      display: grid;
+      gap: 3px;
+      min-width: 260px;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    .snapshot-row {
+      display: grid;
+      grid-template-columns: 78px minmax(0, 1fr);
+      gap: 8px;
+    }
+    .snapshot-label { color: var(--muted); }
+    details.snapshot-raw { margin-top: 4px; }
+    details.snapshot-raw summary {
+      color: var(--brand-dark);
+      cursor: pointer;
+      user-select: none;
+    }
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: rgba(15, 23, 42, .28);
+    }
+    .modal-backdrop.active { display: flex; }
+    .modal {
+      width: min(520px, 100%);
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: 0 12px 30px rgba(16, 24, 40, .18);
+    }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 14px; }
+    .conditions { display: grid; gap: 8px; }
+    .condition-row {
+      display: grid;
+      grid-template-columns: minmax(170px, 1.2fr) minmax(120px, .8fr) minmax(160px, 1fr) 42px;
+      gap: 8px;
+      align-items: center;
+    }
+    .muted { color: var(--muted); }
+    .message { min-height: 22px; color: var(--muted); }
+    pre {
+      margin: 0;
+      max-width: 360px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      color: #475467;
+      font-family: Consolas, monospace;
+      font-size: 12px;
+    }
+    @media (max-width: 900px) {
+      header { align-items: flex-start; flex-direction: column; padding: 14px 16px; }
+      main { padding: 16px; }
+      .grid { grid-template-columns: repeat(2, minmax(120px, 1fr)); }
+      .form-grid { grid-template-columns: 1fr; }
+      .condition-row { grid-template-columns: 1fr; }
+      nav { overflow: auto; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>快手自动投放中台</h1>
+    <div class="top-actions">
+      <span class="pill token-unknown" id="tokenPill">Token <strong id="tokenState">检测中</strong></span>
+      <button id="checkTokenBtn">检测Token</button>
+      <button id="authBtn">授权</button>
+      <span class="pill">自动执行 <strong id="autoState">-</strong></span>
+      <span class="pill">试运行 <strong id="dryState">-</strong></span>
+      <span class="pill">自动刷新 <strong id="refreshState">10/40分更新后</strong></span>
+      <span class="pill">上次刷新 <strong id="lastRefresh">-</strong></span>
+      <button id="refreshBtn">刷新</button>
+      <button id="dryRunBtn">试运行</button>
+      <button class="primary" id="runBtn">执行一次</button>
+    </div>
+  </header>
+  <div class="modal-backdrop" id="authModal">
+    <div class="modal">
+      <h2>快手授权</h2>
+      <div class="row">
+        <button class="primary" id="openAuthUrlBtn">打开快手授权页</button>
+        <button id="closeAuthModalBtn">关闭</button>
+      </div>
+      <p class="muted">授权回调会进入已登记的 4189 服务；授权完成后回到本页面点“检测Token”。</p>
+      <div class="form-grid" style="grid-template-columns:1fr; margin-top:14px">
+        <label>授权码<input id="authCodeInput" placeholder="授权后如页面没有自动回调，可把 auth_code 粘贴到这里" /></label>
+      </div>
+      <div class="modal-actions">
+        <span class="message" id="authMessage"></span>
+        <button class="primary" id="submitAuthCodeBtn">提交授权码</button>
+      </div>
+    </div>
+  </div>
+  <main>
+    <nav>
+      <button class="tab active" data-tab="overview">概览</button>
+      <button class="tab" data-tab="rules">规则</button>
+      <button class="tab" data-tab="logs">日志</button>
+      <button class="tab" data-tab="settings">设置</button>
+    </nav>
+
+    <section class="section active" id="overview">
+      <div class="panel">
+        <div class="row">
+          <label>数据日期<input id="reportDate" type="date" list="reportDateOptions" /></label>
+          <datalist id="reportDateOptions"></datalist>
+          <button id="todayReportBtn">今天</button>
+          <span class="message" id="reportDateMessage"></span>
+        </div>
+      </div>
+      <div class="grid">
+        <div class="metric"><div class="label">启用账号</div><div class="value" id="metricAccounts">0</div></div>
+        <div class="metric"><div class="label">候选广告组</div><div class="value" id="metricCandidates">0</div></div>
+        <div class="metric"><div class="label">启用规则</div><div class="value" id="metricRules">0</div></div>
+        <div class="metric"><div class="label">最近日志</div><div class="value" id="metricLogs">0</div></div>
+      </div>
+      <div class="panel">
+        <h2>候选广告组</h2>
+        <div class="table-wrap"><table id="candidateTable"></table></div>
+      </div>
+    </section>
+
+    <section class="section" id="rules">
+      <div class="panel">
+        <h2>规则编辑</h2>
+        <div class="form-grid">
+          <input type="hidden" id="ruleId" />
+          <label>规则名称<input id="ruleName" placeholder="例如：低ROI暂停" /></label>
+          <label>优先级<input id="rulePriority" type="number" value="100" /></label>
+          <label>每日触发次数<input id="ruleMaxDaily" type="number" min="0" value="1" placeholder="0表示不限制" /></label>
+          <label>匹配方式<select id="ruleMatch"><option value="all">全部条件</option><option value="any">任一条件</option></select></label>
+          <label class="row"><input id="ruleEnabled" type="checkbox" checked /> 启用</label>
+        </div>
+        <h3 style="margin-top:16px">条件</h3>
+        <div class="conditions" id="conditions"></div>
+        <div class="row" style="margin-top:8px"><button id="addConditionBtn">添加条件</button></div>
+        <h3 style="margin-top:16px">动作</h3>
+        <div class="form-grid">
+          <label>动作<select id="actionType"></select></label>
+          <label id="actionModeWrap">计算方式<select id="actionMode">
+            <option value="set">设为固定值</option>
+            <option value="add_value">当前值 + 固定值</option>
+            <option value="add_percent">当前值 + 百分比</option>
+          </select></label>
+          <label id="actionValueWrap">参数<input id="actionValue" placeholder="按动作填写" /></label>
+          <label id="actionMaxWrap">上限值<input id="actionMaxValue" placeholder="达到后不再修改" /></label>
+        </div>
+        <div class="row" style="margin-top:14px">
+          <button class="primary" id="saveRuleBtn">保存规则</button>
+          <button id="newRuleBtn">新建</button>
+          <span class="message" id="ruleMessage"></span>
+        </div>
+      </div>
+      <div class="panel">
+        <h2>规则列表</h2>
+        <div class="table-wrap"><table id="ruleTable"></table></div>
+      </div>
+    </section>
+
+    <section class="section" id="logs">
+      <div class="panel">
+        <h2>执行日志</h2>
+        <div class="table-wrap"><table id="logTable"></table></div>
+      </div>
+    </section>
+
+    <section class="section" id="settings">
+      <div class="panel">
+        <h2>自动执行</h2>
+        <div class="form-grid">
+          <label class="row"><input id="setAutoEnabled" type="checkbox" /> 拉数后自动执行</label>
+          <label class="row"><input id="setDryRun" type="checkbox" /> 只试运行</label>
+          <label>单轮最多操作<input id="setMaxRun" type="number" min="0" /></label>
+          <label>单账号单轮最多操作<input id="setMaxAccount" type="number" min="0" /></label>
+          <label>单广告组每天最多操作<input id="setMaxUnitDay" type="number" min="0" /></label>
+          <label>接口间隔秒<input id="setDelay" type="number" min="0" step="0.1" /></label>
+          <label>广告主黑名单<input id="setBlockedAdvertisers" placeholder="逗号分隔" /></label>
+          <label>计划黑名单<input id="setBlockedCampaigns" placeholder="逗号分隔" /></label>
+          <label>广告组黑名单<input id="setBlockedUnits" placeholder="逗号分隔" /></label>
+        </div>
+        <div class="row" style="margin-top:14px">
+          <button class="primary" id="saveSettingsBtn">保存设置</button>
+          <span class="message" id="settingsMessage"></span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const state = { data: null, fields: [], actions: [], loading: false, checking: false, lastRefreshAt: null, version: "", refreshTimer: null, reportDate: todayLocalDate() };
+    const REFRESH_WINDOW_MINUTES = [10, 40];
+    const REFRESH_WINDOW_DURATION_MINUTES = 8;
+    const VERSION_CHECK_SECONDS = 30;
+    const $ = (id) => document.getElementById(id);
+
+    function todayLocalDate() {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, "0");
+      const day = String(now.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+
+    async function api(path, options = {}) {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), Number(options.timeoutMs || 20000));
+      let response;
+      try {
+        response = await fetch(path, {
+          ...options,
+          signal: controller.signal,
+          headers: { "Content-Type": "application/json", ...(options.headers || {}) }
+        });
+      } catch (error) {
+        const isTimeout = error && error.name === "AbortError";
+        throw new Error(isTimeout ? "本地服务响应超时，可能正在入库，请稍后刷新" : "连接本地服务失败，请确认 8787 服务已启动");
+      } finally {
+        clearTimeout(timeout);
+      }
+      const text = await response.text();
+      let data = {};
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch (error) {
+        throw new Error("本地服务返回异常，请刷新页面重试");
+      }
+      if (!response.ok || data.ok === false) throw new Error(data.error || "请求失败");
+      return data;
+    }
+
+    function esc(value) {
+      return String(value ?? "").replace(/[&<>"']/g, (ch) => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;"
+      }[ch]));
+    }
+
+    function statusClass(status) {
+      return ["success", "failed", "dry_run", "skipped"].includes(status) ? status : "";
+    }
+
+    function statusLabel(status) {
+      return {
+        success: "成功",
+        failed: "失败",
+        dry_run: "试运行",
+        skipped: "跳过"
+      }[status] || status || "";
+    }
+
+    function tokenLabel(auth) {
+      if (!auth) return "未知";
+      if (auth.ok === true) return "正常";
+      if (auth.ok === false) return "失效";
+      return "未检测";
+    }
+
+    function renderTokenStatus(auth) {
+      const pill = $("tokenPill");
+      pill.classList.remove("token-ok", "token-bad", "token-unknown");
+      pill.classList.add(auth && auth.ok === true ? "token-ok" : auth && auth.ok === false ? "token-bad" : "token-unknown");
+      $("tokenState").textContent = tokenLabel(auth);
+      $("tokenPill").title = auth && auth.message ? auth.message : "";
+    }
+
+    async function loadTokenStatus(force = false) {
+      $("tokenState").textContent = force ? "检测中" : "读取中";
+      const data = await api(force ? "/api/auth/check" : "/api/auth/status", { method: force ? "POST" : "GET" });
+      renderTokenStatus(data.auth);
+      return data.auth;
+    }
+
+    function openAuthModal() {
+      $("authMessage").textContent = "";
+      $("authModal").classList.add("active");
+    }
+
+    function closeAuthModal() {
+      $("authModal").classList.remove("active");
+    }
+
+    async function openAuthorizeUrl() {
+      $("authMessage").textContent = "正在打开授权页";
+      const data = await api("/api/auth/authorize-url");
+      window.open(data.url, "_blank", "noopener");
+      $("authMessage").textContent = "授权完成后会自动返回，也可粘贴授权码提交";
+    }
+
+    async function submitAuthCode() {
+      const authCode = $("authCodeInput").value.trim();
+      if (!authCode) {
+        $("authMessage").textContent = "请填写授权码";
+        return;
+      }
+      $("authMessage").textContent = "授权中";
+      const data = await api("/api/auth/exchange", { method: "POST", body: JSON.stringify({ auth_code: authCode }) });
+      renderTokenStatus(data.auth);
+      $("authMessage").textContent = "授权成功";
+      closeAuthModal();
+      await loadState();
+    }
+
+    function putStatusLabel(value) {
+      const key = String(value ?? "");
+      return {
+        "1": "开启",
+        "2": "暂停"
+      }[key] || (key ? `未知 ${key}` : "-");
+    }
+
+    function platformStatusLabel(value) {
+      const key = String(value ?? "");
+      return {
+        "1": "审核中",
+        "6": "审核不通过",
+        "15": "已暂停",
+        "20": "投放中"
+      }[key] || (key ? `状态 ${key}` : "-");
+    }
+
+    function renderDeliveryStatus(putStatus, platformStatus) {
+      const putLabel = putStatusLabel(putStatus);
+      const mainClass = String(putStatus ?? "") === "1" ? "on" : String(putStatus ?? "") === "2" ? "off" : "";
+      return `
+        <div class="delivery-status">
+          <span class="main ${mainClass}">${esc(putLabel)}</span>
+          <span class="muted">平台 ${esc(platformStatusLabel(platformStatus))}</span>
+        </div>`;
+    }
+
+    function fieldLabel(key) {
+      const field = state.fields.find((item) => item.key === key);
+      return field ? field.label : key;
+    }
+
+    function actionLabel(key) {
+      const action = state.actions.find((item) => item.key === key);
+      return action ? action.label : key;
+    }
+
+    function opLabel(key) {
+      const labels = {
+        gt: ">",
+        gte: ">=",
+        lt: "<",
+        lte: "<=",
+        eq: "=",
+        ne: "!=",
+        contains: "包含",
+        not_contains: "不包含",
+        in: "在列表",
+        not_in: "不在列表",
+        is_empty: "为空",
+        not_empty: "不为空"
+      };
+      return labels[key] || key;
+    }
+
+    function renderConditionSummary(conditions) {
+      if (!conditions || !conditions.length) return '<span class="muted">无条件</span>';
+      return conditions.map((condition) => {
+        const noValue = ["is_empty", "not_empty"].includes(condition.op);
+        const value = noValue ? "" : `<strong>${esc(condition.value)}</strong>`;
+        return `<div>${esc(fieldLabel(condition.field))} ${esc(opLabel(condition.op))} ${value}</div>`;
+      }).join("");
+    }
+
+    function renderActionSummary(action) {
+      if (!action || !action.type) return '<span class="muted">未设置</span>';
+      const label = actionLabel(action.type);
+      if (["set_roi_ratio", "set_day_budget"].includes(action.type)) {
+        const mode = action.mode || "set";
+        const baseLabel = action.type === "set_day_budget" ? "当前预算" : "当前ROI系数";
+        const modeLabel = {
+          set: "设为",
+          add_value: `${baseLabel} +`,
+          add_percent: `${baseLabel} +`
+        }[mode] || "设为";
+        const suffix = mode === "add_percent" ? "%" : action.type === "set_day_budget" ? " 元" : "";
+        const maxSuffix = action.type === "set_day_budget" ? " 元" : "";
+        const maxText = action.max_value !== undefined && action.max_value !== null && action.max_value !== "" ? `，上限 ${action.max_value}${maxSuffix}` : "";
+        return `<div>${esc(label)}：<strong>${esc(modeLabel)} ${esc(action.value ?? "")}${suffix}${esc(maxText)}</strong></div>`;
+      }
+      return `<div>${esc(label)}</div>`;
+    }
+
+    function formatSnapshotValue(value, suffix = "") {
+      if (value === null || value === undefined || value === "") return "-";
+      const number = Number(value);
+      if (Number.isFinite(number) && String(value).trim() !== "") {
+        return `${Math.round(number * 1000) / 1000}${suffix}`;
+      }
+      return `${value}${suffix}`;
+    }
+
+    function isLowIaaRoi(value) {
+      if (value === null || value === undefined || value === "") return false;
+      const number = Number(value);
+      return Number.isFinite(number) && number < 0.5;
+    }
+
+    function renderLogSnapshot(log) {
+      const before = log.before || {};
+      const items = [
+        ["花费", before.spend, " 元"],
+        ["IAA ROI", before.roi_iaa, ""],
+        ["账号余额", before.account_balance, " 元"],
+        ["昨天花费", before.yesterday_spend, " 元"],
+        ["昨天IAA ROI", before.yesterday_roi_iaa, ""],
+        ["ROI系数", before.roi_ratio, ""],
+        ["日预算", before.day_budget_yuan, " 元"],
+        ["入库时间", before.last_seen_at, ""]
+      ];
+      const rows = items.map(([label, value, suffix]) => {
+        const valueClass = label === "账号余额" && Number(value) < 2000 ? "money-low" : label === "IAA ROI" && isLowIaaRoi(value) ? "roi-low" : "";
+        return `<div class="snapshot-row"><span class="snapshot-label">${esc(label)}</span><span class="${valueClass}">${esc(formatSnapshotValue(value, suffix))}</span></div>`;
+      }).join("");
+      const statusRow = `<div class="snapshot-row"><span class="snapshot-label">状态</span><div>${renderDeliveryStatus(before.put_status, before.status)}</div></div>`;
+      return `<div class="snapshot">${rows}${statusRow}<details class="snapshot-raw"><summary>完整快照</summary><pre>${esc(JSON.stringify(before, null, 2))}</pre></details></div>`;
+    }
+
+    function activeTab() {
+      const active = document.querySelector(".tab.active");
+      return active ? active.dataset.tab : "overview";
+    }
+
+    function isEditingSurface() {
+      return ["rules", "settings"].includes(activeTab());
+    }
+
+    function updateRefreshMeta() {
+      $("refreshState").textContent = isEditingSurface() ? "暂停" : "10/40分更新后";
+      $("lastRefresh").textContent = state.lastRefreshAt || "-";
+    }
+
+    function currentRefreshWindow(now = new Date()) {
+      for (const minute of REFRESH_WINDOW_MINUTES) {
+        const start = new Date(now);
+        start.setMinutes(minute, 0, 0);
+        const end = new Date(start.getTime() + REFRESH_WINDOW_DURATION_MINUTES * 60 * 1000);
+        if (now >= start && now < end) return { start, end };
+      }
+      return null;
+    }
+
+    function msUntilNextRefreshWindow(now = new Date()) {
+      const candidates = [];
+      for (let hourOffset = 0; hourOffset <= 1; hourOffset += 1) {
+        for (const minute of REFRESH_WINDOW_MINUTES) {
+          const start = new Date(now);
+          start.setHours(now.getHours() + hourOffset, minute, 0, 0);
+          if (start > now) candidates.push(start.getTime() - now.getTime());
+        }
+      }
+      return Math.max(1000, Math.min(...candidates));
+    }
+
+    function scheduleRefreshCheck(delayMs) {
+      if (state.refreshTimer) clearTimeout(state.refreshTimer);
+      const delay = Number.isFinite(delayMs) ? delayMs : msUntilNextRefreshWindow();
+      state.refreshTimer = setTimeout(runScheduledRefreshCheck, delay);
+    }
+
+    async function runScheduledRefreshCheck() {
+      const window = currentRefreshWindow();
+      if (!window) {
+        scheduleRefreshCheck();
+        return;
+      }
+      try {
+        await refreshIfChanged();
+      } catch (error) {
+        console.warn("version check failed", error);
+      }
+      const remainingMs = window.end.getTime() - Date.now();
+      if (remainingMs > 0) {
+        scheduleRefreshCheck(Math.min(VERSION_CHECK_SECONDS * 1000, remainingMs));
+      } else {
+        scheduleRefreshCheck();
+      }
+    }
+
+    async function loadState(options = {}) {
+      if (state.loading) return;
+      if (options.auto && isEditingSurface()) {
+        updateRefreshMeta();
+        return;
+      }
+      state.loading = true;
+      try {
+        const date = state.reportDate || todayLocalDate();
+        state.data = await api(`/api/state?date=${encodeURIComponent(date)}`);
+        state.reportDate = state.data.report_date || date;
+        state.fields = state.data.field_defs;
+        state.actions = state.data.action_defs;
+        const version = await api("/api/version");
+        state.version = version.version || "";
+        state.lastRefreshAt = new Date().toLocaleTimeString("zh-CN", { hour12: false });
+        renderAll();
+      } finally {
+        state.loading = false;
+      }
+    }
+
+    async function refreshIfChanged() {
+      if (state.loading || state.checking || !state.version) return;
+      if (isEditingSurface()) {
+        updateRefreshMeta();
+        return;
+      }
+      state.checking = true;
+      try {
+        const version = await api("/api/version");
+        if (version.version && version.version !== state.version) {
+          await loadState({ auto: true });
+        }
+      } finally {
+        state.checking = false;
+      }
+    }
+
+    function renderAll() {
+      const data = state.data;
+      $("autoState").textContent = data.settings.auto_enabled ? "开启" : "关闭";
+      $("dryState").textContent = data.settings.dry_run ? "开启" : "关闭";
+      $("metricAccounts").textContent = data.summary.enabled_accounts;
+      $("metricCandidates").textContent = data.summary.candidates;
+      $("metricRules").textContent = data.summary.enabled_rules;
+      $("metricLogs").textContent = data.logs.length;
+      renderCandidates();
+      renderRules();
+      renderLogs();
+      renderSettings();
+      renderActionOptions();
+      renderReportDateFilter();
+      if (!$("conditions").children.length) addConditionRow();
+      updateRefreshMeta();
+    }
+
+    function renderReportDateFilter() {
+      $("reportDate").value = state.reportDate || state.data.report_date || todayLocalDate();
+      const dates = state.data.available_report_dates || [];
+      $("reportDateOptions").innerHTML = dates.map((item) => `<option value="${esc(item.date)}">${esc(item.rows)} 条</option>`).join("");
+      const selected = state.data.report_date || $("reportDate").value;
+      const previous = state.data.previous_report_date || "";
+      const hasData = dates.some((item) => item.date === selected);
+      $("reportDateMessage").textContent = hasData
+        ? (previous ? `当前查看 ${selected}，昨天指标取 ${previous}` : `当前查看 ${selected}`)
+        : `当前查看 ${selected}，该日期暂无日报数据`;
+    }
+
+    function renderCandidates() {
+      const rows = state.data.candidates || [];
+      $("candidateTable").innerHTML = `
+        <thead><tr>
+          <th>广告主</th><th>计划</th><th>广告组</th><th>账号余额</th><th>昨天花费</th><th>昨天IAA ROI</th><th>花费</th><th>IAA广告变现ROI</th><th>ROI系数</th><th>状态</th><th>预算</th><th>最后入库</th>
+        </tr></thead>
+        <tbody>${rows.map((row) => `
+          <tr>
+            <td>${esc(row.advertiser_id)}</td>
+            <td>${esc(row.campaign_name || row.campaign_id)}<br><span class="muted">${esc(row.campaign_id)}</span></td>
+            <td>${esc(row.unit_name || row.unit_id)}<br><span class="muted">${esc(row.unit_id)}</span></td>
+            <td class="${Number(row.account_balance ?? 0) < 2000 ? "money-low" : ""}">${esc(row.account_balance ?? "")}</td>
+            <td>${esc(row.yesterday_spend ?? "")}</td>
+            <td>${esc(row.yesterday_roi_iaa ?? "")}</td>
+            <td>${esc(row.spend)}</td>
+            <td class="${isLowIaaRoi(row.roi_iaa) ? "roi-low" : ""}">${esc(row.roi_iaa ?? "")}</td>
+            <td>${esc(row.roi_ratio ?? "")}</td>
+            <td>${renderDeliveryStatus(row.put_status, row.status)}</td>
+            <td>${esc(row.day_budget_yuan ?? "")}</td>
+            <td>${esc(row.last_seen_at || "")}</td>
+          </tr>`).join("")}</tbody>`;
+    }
+
+    function renderRules() {
+      const rows = state.data.rules || [];
+      $("ruleTable").innerHTML = `
+        <thead><tr><th>ID</th><th>规则</th><th>条件</th><th>动作</th><th>状态</th><th>操作</th></tr></thead>
+        <tbody>${rows.map((rule) => `
+          <tr>
+            <td>${rule.rule_id}</td>
+            <td>${esc(rule.name)}<br><span class="muted">优先级 ${esc(rule.priority)} · ${rule.match_type === "any" ? "任一" : "全部"} · ${renderDailyLimit(rule.max_daily_triggers)}</span></td>
+            <td>${renderConditionSummary(rule.conditions)}</td>
+            <td>${renderActionSummary(rule.action)}</td>
+            <td><span class="status ${rule.enabled ? "success" : "skipped"}">${rule.enabled ? "启用" : "停用"}</span></td>
+            <td><button data-edit="${rule.rule_id}">编辑</button> <button class="danger" data-delete="${rule.rule_id}">删除</button></td>
+          </tr>`).join("")}</tbody>`;
+      document.querySelectorAll("[data-edit]").forEach((button) => {
+        button.onclick = () => loadRule(Number(button.dataset.edit));
+      });
+      document.querySelectorAll("[data-delete]").forEach((button) => {
+        button.onclick = () => deleteRule(Number(button.dataset.delete));
+      });
+    }
+
+    function renderDailyLimit(value) {
+      const number = Number(value ?? 1);
+      return number > 0 ? `每日${number}次` : "每日不限";
+    }
+
+    function renderLogs() {
+      const rows = state.data.logs || [];
+      $("logTable").innerHTML = `
+        <thead><tr><th>时间</th><th>规则</th><th>广告组</th><th>执行时数据</th><th>动作</th><th>状态</th><th>原因</th></tr></thead>
+        <tbody>${rows.map((log) => `
+          <tr>
+            <td>${esc(log.created_at)}</td>
+            <td>${esc(log.rule_name || "")}<br><span class="muted">${esc(log.source)} · ${esc(log.batch_id)}</span></td>
+            <td>${esc(log.unit_name || log.unit_id)}<br><span class="muted">${esc(log.advertiser_id)} / ${esc(log.unit_id)}</span></td>
+            <td>${renderLogSnapshot(log)}</td>
+            <td>${renderLogAction(log)}</td>
+            <td><span class="status ${statusClass(log.status)}">${esc(statusLabel(log.status))}</span></td>
+            <td>${esc(log.reason || "")}</td>
+          </tr>`).join("")}</tbody>`;
+    }
+
+    function renderLogAction(log) {
+      const action = log.action_value || {};
+      const request = log.request || {};
+      const calc = request.calculation || {};
+      const body = request.body || {};
+      const baseLabel = log.action_type === "set_day_budget" ? "当前预算" : "当前ROI系数";
+      const valueSuffix = log.action_type === "set_day_budget" ? " 元" : "";
+      const target = log.action_type === "set_roi_ratio" && body.roi_ratio !== undefined
+        ? body.roi_ratio
+        : log.action_type === "set_day_budget" && body.day_budget !== undefined
+          ? formatSnapshotValue(Number(body.day_budget) / 1000, " 元")
+          : "";
+      const hasMax = calc.max_value !== undefined && calc.max_value !== null && calc.max_value !== "";
+      const capText = hasMax
+        ? `，上限 ${formatSnapshotValue(calc.max_value, valueSuffix)}${calc.capped ? `，已封顶（原目标 ${formatSnapshotValue(calc.uncapped_target_value, valueSuffix)}）` : ""}`
+        : "";
+      const calcText = calc.mode === "set"
+        ? `设为 ${formatSnapshotValue(calc.target_value, valueSuffix)}`
+        : calc.mode
+          ? `${baseLabel} ${formatSnapshotValue(calc.base_value, valueSuffix)}，增加 ${formatSnapshotValue(calc.input_value)}${calc.mode === "add_percent" ? "%" : valueSuffix}，目标 ${formatSnapshotValue(calc.target_value, valueSuffix)}`
+          : JSON.stringify(action || {});
+      return `${esc(actionLabel(log.action_type) || log.action_type || "")}<br><span class="muted">${esc(calcText + capText)}</span>${target !== "" ? `<br><span class="muted">请求目标 ${esc(target)}</span>` : ""}`;
+    }
+
+    function renderSettings() {
+      const s = state.data.settings;
+      $("setAutoEnabled").checked = Boolean(s.auto_enabled);
+      $("setDryRun").checked = Boolean(s.dry_run);
+      $("setMaxRun").value = s.max_actions_per_run;
+      $("setMaxAccount").value = s.max_actions_per_account_per_run;
+      $("setMaxUnitDay").value = s.max_actions_per_unit_per_day;
+      $("setDelay").value = s.request_delay_seconds;
+      $("setBlockedAdvertisers").value = (s.blocked_advertiser_ids || []).join(",");
+      $("setBlockedCampaigns").value = (s.blocked_campaign_ids || []).join(",");
+      $("setBlockedUnits").value = (s.blocked_unit_ids || []).join(",");
+    }
+
+    function renderActionOptions() {
+      $("actionType").innerHTML = state.actions.map((action) => `<option value="${action.key}">${esc(action.label)}</option>`).join("");
+      updateActionInputs();
+    }
+
+    function actionNeedsValue(actionType = $("actionType").value) {
+      return ["set_roi_ratio", "set_day_budget"].includes(actionType);
+    }
+
+    function updateActionInputs() {
+      const actionType = $("actionType").value;
+      const needsValue = actionNeedsValue(actionType);
+      $("actionModeWrap").style.display = needsValue ? "grid" : "none";
+      $("actionValueWrap").style.display = needsValue ? "grid" : "none";
+      $("actionMaxWrap").style.display = needsValue ? "grid" : "none";
+      $("actionValue").disabled = !needsValue;
+      $("actionMaxValue").disabled = !needsValue;
+      $("actionMode").disabled = !needsValue;
+      if (!needsValue) {
+        $("actionValue").value = "";
+        $("actionMaxValue").value = "";
+        $("actionValue").placeholder = "无需填写";
+        $("actionMaxValue").placeholder = "无需填写";
+        return;
+      }
+      const baseLabel = actionType === "set_day_budget" ? "当前预算" : "当前ROI系数";
+      $("actionMode").querySelector('option[value="add_value"]').textContent = `${baseLabel} + 固定值`;
+      $("actionMode").querySelector('option[value="add_percent"]').textContent = `${baseLabel} + 百分比`;
+      const mode = $("actionMode").value;
+      if (mode === "add_percent") {
+        $("actionValue").placeholder = "例如：10 表示增加10%";
+      } else if (actionType === "set_day_budget") {
+        $("actionValue").placeholder = mode === "set" ? "目标预算，单位元" : "增加金额，单位元";
+      } else {
+        $("actionValue").placeholder = mode === "set" ? "目标ROI系数" : "增加的ROI系数";
+      }
+      $("actionMaxValue").placeholder = actionType === "set_day_budget" ? "预算上限，单位元" : "ROI系数上限";
+    }
+
+    function fieldOptions(selected) {
+      return state.fields.map((field) => `<option value="${field.key}" ${field.key === selected ? "selected" : ""}>${esc(field.label)}</option>`).join("");
+    }
+
+    function opOptions(selected) {
+      const ops = [
+        ["gt", ">"], ["gte", ">="], ["lt", "<"], ["lte", "<="], ["eq", "="], ["ne", "!="],
+        ["contains", "包含"], ["not_contains", "不包含"], ["in", "在列表"], ["not_in", "不在列表"],
+        ["is_empty", "为空"], ["not_empty", "不为空"]
+      ];
+      return ops.map(([key, label]) => `<option value="${key}" ${key === selected ? "selected" : ""}>${label}</option>`).join("");
+    }
+
+    function addConditionRow(condition = {}) {
+      const row = document.createElement("div");
+      row.className = "condition-row";
+      row.innerHTML = `
+        <select class="condition-field">${fieldOptions(condition.field)}</select>
+        <select class="condition-op">${opOptions(condition.op || "gt")}</select>
+        <input class="condition-value" value="${esc(condition.value ?? "")}" />
+        <button class="danger" type="button">删</button>`;
+      row.querySelector("button").onclick = () => row.remove();
+      $("conditions").appendChild(row);
+    }
+
+    function collectRule() {
+      const conditions = Array.from(document.querySelectorAll(".condition-row")).map((row) => ({
+        field: row.querySelector(".condition-field").value,
+        op: row.querySelector(".condition-op").value,
+        value: row.querySelector(".condition-value").value
+      }));
+      return {
+        rule_id: $("ruleId").value || undefined,
+        name: $("ruleName").value,
+        priority: Number($("rulePriority").value || 100),
+        max_daily_triggers: Number($("ruleMaxDaily").value || 0),
+        enabled: $("ruleEnabled").checked,
+        match_type: $("ruleMatch").value,
+        conditions,
+        action: {
+          type: $("actionType").value,
+          mode: actionNeedsValue() ? $("actionMode").value : "set",
+          value: actionNeedsValue() ? $("actionValue").value : "",
+          max_value: actionNeedsValue() ? $("actionMaxValue").value : ""
+        }
+      };
+    }
+
+    function resetRuleForm() {
+      $("ruleId").value = "";
+      $("ruleName").value = "";
+      $("rulePriority").value = "100";
+      $("ruleMaxDaily").value = "1";
+      $("ruleEnabled").checked = true;
+      $("ruleMatch").value = "all";
+      $("conditions").innerHTML = "";
+      addConditionRow();
+      $("actionMode").value = "set";
+      $("actionValue").value = "";
+      $("actionMaxValue").value = "";
+      updateActionInputs();
+      $("ruleMessage").textContent = "";
+    }
+
+    function loadRule(ruleId) {
+      const rule = state.data.rules.find((item) => item.rule_id === ruleId);
+      if (!rule) return;
+      $("ruleId").value = rule.rule_id;
+      $("ruleName").value = rule.name;
+      $("rulePriority").value = rule.priority;
+      $("ruleMaxDaily").value = rule.max_daily_triggers ?? 1;
+      $("ruleEnabled").checked = rule.enabled;
+      $("ruleMatch").value = rule.match_type;
+      $("conditions").innerHTML = "";
+      (rule.conditions || []).forEach(addConditionRow);
+      $("actionType").value = rule.action.type;
+      $("actionMode").value = rule.action.mode || "set";
+      $("actionValue").value = rule.action.value ?? "";
+      $("actionMaxValue").value = rule.action.max_value ?? "";
+      updateActionInputs();
+      document.querySelector('[data-tab="rules"]').click();
+    }
+
+    async function saveRule() {
+      $("ruleMessage").textContent = "保存中";
+      await api("/api/rules", { method: "POST", body: JSON.stringify(collectRule()) });
+      $("ruleMessage").textContent = "已保存";
+      resetRuleForm();
+      await loadState();
+    }
+
+    async function deleteRule(ruleId) {
+      if (!confirm(`删除规则 ${ruleId}？`)) return;
+      await api(`/api/rules?rule_id=${ruleId}`, { method: "DELETE" });
+      await loadState();
+    }
+
+    async function saveSettings() {
+      $("settingsMessage").textContent = "保存中";
+      const payload = {
+        auto_enabled: $("setAutoEnabled").checked,
+        dry_run: $("setDryRun").checked,
+        max_actions_per_run: Number($("setMaxRun").value || 0),
+        max_actions_per_account_per_run: Number($("setMaxAccount").value || 0),
+        max_actions_per_unit_per_day: Number($("setMaxUnitDay").value || 0),
+        request_delay_seconds: Number($("setDelay").value || 0),
+        blocked_advertiser_ids: $("setBlockedAdvertisers").value,
+        blocked_campaign_ids: $("setBlockedCampaigns").value,
+        blocked_unit_ids: $("setBlockedUnits").value
+      };
+      await api("/api/settings", { method: "POST", body: JSON.stringify(payload) });
+      $("settingsMessage").textContent = "已保存";
+      await loadState();
+    }
+
+    async function runOnce(dryRun) {
+      const label = dryRun ? "试运行" : "执行一次";
+      if (!dryRun && !confirm("确认立即调用快手接口执行命中的规则？")) return;
+      const result = await api("/api/run", {
+        method: "POST",
+        body: JSON.stringify({ dry_run: dryRun, source: dryRun ? "web_dry_run" : "web_manual", respect_enabled: false })
+      });
+      await loadState();
+      document.querySelector('[data-tab="logs"]').click();
+      const simulated = result.result.dry_run || 0;
+      const message = dryRun
+        ? `${label}完成：命中 ${result.result.matched}，模拟执行 ${simulated}，失败 ${result.result.failed}，跳过 ${result.result.skipped}。已切到日志页。`
+        : `${label}完成：命中 ${result.result.matched}，成功 ${result.result.success}，失败 ${result.result.failed}，跳过 ${result.result.skipped}。已切到日志页。`;
+      alert(message);
+    }
+
+    document.querySelectorAll(".tab").forEach((button) => {
+      button.onclick = () => {
+        document.querySelectorAll(".tab").forEach((item) => item.classList.remove("active"));
+        document.querySelectorAll(".section").forEach((item) => item.classList.remove("active"));
+        button.classList.add("active");
+        $(button.dataset.tab).classList.add("active");
+        updateRefreshMeta();
+      };
+    });
+    $("refreshBtn").onclick = () => {
+      state.reportDate = $("reportDate").value || state.reportDate || todayLocalDate();
+      loadState().catch((error) => alert(error.message));
+    };
+    $("reportDate").onchange = () => {
+      state.reportDate = $("reportDate").value || todayLocalDate();
+      loadState().catch((error) => alert(error.message));
+    };
+    $("todayReportBtn").onclick = () => {
+      state.reportDate = todayLocalDate();
+      $("reportDate").value = state.reportDate;
+      loadState().catch((error) => alert(error.message));
+    };
+    $("checkTokenBtn").onclick = () => loadTokenStatus(true).catch((error) => alert(error.message));
+    $("authBtn").onclick = openAuthModal;
+    $("openAuthUrlBtn").onclick = () => openAuthorizeUrl().catch((error) => $("authMessage").textContent = error.message);
+    $("submitAuthCodeBtn").onclick = () => submitAuthCode().catch((error) => $("authMessage").textContent = error.message);
+    $("closeAuthModalBtn").onclick = closeAuthModal;
+    $("dryRunBtn").onclick = () => runOnce(true);
+    $("runBtn").onclick = () => runOnce(false);
+    $("addConditionBtn").onclick = () => addConditionRow();
+    $("actionType").onchange = updateActionInputs;
+    $("actionMode").onchange = updateActionInputs;
+    $("saveRuleBtn").onclick = () => saveRule().catch((error) => $("ruleMessage").textContent = error.message);
+    $("newRuleBtn").onclick = resetRuleForm;
+    $("saveSettingsBtn").onclick = () => saveSettings().catch((error) => $("settingsMessage").textContent = error.message);
+
+    if (new URLSearchParams(location.search).get("auth") === "success") {
+      history.replaceState(null, "", location.pathname);
+      setTimeout(() => alert("快手授权成功"), 200);
+    }
+    loadTokenStatus(true).catch((error) => renderTokenStatus({ ok: false, message: error.message }));
+    loadState().catch((error) => alert(error.message));
+    scheduleRefreshCheck(currentRefreshWindow() ? 1000 : undefined);
+  </script>
+</body>
+</html>
